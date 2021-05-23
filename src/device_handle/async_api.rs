@@ -2,6 +2,7 @@ use crate::{DeviceHandle, UsbContext};
 use libusb1_sys as ffi;
 
 use std::collections::VecDeque;
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering::SeqCst};
 use std::convert::TryInto;
 use std::ptr::NonNull;
@@ -171,13 +172,13 @@ impl Drop for AsyncTransfer {
 
 /// Represents a pool of asynchronous transfers, that can be polled to completion
 pub struct AsyncPool<C: UsbContext> {
-    device: DeviceHandle<C>,
+    device: Arc<DeviceHandle<C>>,
     endpoint: u8,
     pending: VecDeque<AsyncTransfer>,
 }
 impl<C: UsbContext> AsyncPool<C> {
     pub fn new_bulk(
-        device: DeviceHandle<C>,
+        device: Arc<DeviceHandle<C>>,
         endpoint: u8,
     ) -> Result<Self, AsyncError> {
         Ok(Self {

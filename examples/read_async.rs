@@ -1,5 +1,6 @@
 use rusb::{AsyncPool, Context, UsbContext};
 
+use std::sync::Arc;
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -16,9 +17,9 @@ fn main() {
     let endpoint: u8 = FromStr::from_str(args[3].as_ref()).unwrap();
 
     let ctx = Context::new().expect("Could not initialize libusb");
-    let device = ctx
+    let device = Arc::new(ctx
         .open_device_with_vid_pid(vid, pid)
-        .expect("Could not find device");
+        .expect("Could not find device"));
 
     const NUM_TRANSFERS: usize = 32;
     const BUF_SIZE: usize = 64;
