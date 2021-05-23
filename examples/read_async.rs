@@ -21,30 +21,19 @@ fn main() {
         .expect("Could not find device");
 
     const NUM_TRANSFERS: usize = 32;
-    const BUF_SIZE: usize = 1024;
-
-    let mut buffers = Vec::new();
-    for _ in 0..NUM_TRANSFERS {
-        let buf = Vec::with_capacity(BUF_SIZE);
-        buffers.push(buf);
-    }
+    const BUF_SIZE: usize = 64;
 
     let mut async_pool =
-        AsyncPool::new_bulk(device, endpoint, buffers).expect("Failed to create async pool!");
+        AsyncPool::new_bulk(device, endpoint).expect("Failed to create async pool!");
 
-    let mut swap_vec = Vec::with_capacity(BUF_SIZE);
+    while async_pool.pending() < NUM_TRANSFERS {
+        async_pool.submit(Vec::with_capacity(BUF_SIZE)).expect("Failed to submit transfer");
+    }
+
     let timeout = Duration::from_secs(10);
     loop {
-        let poll_result = async_pool.poll(timeout, swap_vec);
-        match poll_result {
-            Ok(data) => {
-                println!("Got data: {:#?}", data);
-                swap_vec = data
-            }
-            Err((err, buf)) => {
-                eprintln!("Error: {}", err);
-                swap_vec = buf
-            }
-        }
+        let data = async_pool.poll(timeout).expect("Transfer failed");
+        println!("Got data: {} {:?}", data.len(), data);
+        async_pool.submit(data).expect("Failed to resubmit transfer");
     }
 }
